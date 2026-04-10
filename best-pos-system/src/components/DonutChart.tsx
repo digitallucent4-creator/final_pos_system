@@ -1,0 +1,113 @@
+"use client"
+
+import * as React from "react"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
+import { cn } from "@/lib/utils"
+
+interface DonutChartData {
+  name: string
+  amount: number
+  [key: string]: any
+}
+
+interface DonutChartProps {
+  data: DonutChartData[]
+  className?: string
+  category?: string
+  value?: string
+  showLabel?: boolean
+  valueFormatter?: (value: number) => string
+}
+
+const COLORS = [
+  "#06D6A0",
+  "#118AB2",
+  "#FF6B6B",
+  "#FFD166",
+  "#EF476F",
+  "#073B4C",
+  "#8338EC",
+  "#3A86FF",
+]
+
+export function DonutChart({
+  data,
+  className,
+  category = "name",
+  value = "amount",
+  showLabel = true,
+  valueFormatter
+}: DonutChartProps) {
+  const total = data.reduce((sum, item) => sum + (item[value] || item.amount), 0)
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(null)
+
+  const chartData = data.map((item) => ({
+    name: item[category] || item.name,
+    amount: item[value] || item.amount,
+  }))
+
+  const percentageData = chartData.map((item) => ({
+    ...item,
+    percentage: ((item.amount / total) * 100).toFixed(1),
+  }))
+
+  const activeItem = activeIndex !== null ? chartData[activeIndex] : null
+  const activePercentage = activeItem ? ((activeItem.amount / total) * 100).toFixed(1) : null
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {/* Donut Chart */}
+      <div className="relative">
+        <ResponsiveContainer width="100%" height={280}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius={70}
+              outerRadius={110}
+              strokeWidth={3}
+              stroke="#ffffff"
+              dataKey="amount"
+              nameKey="name"
+              paddingAngle={3}
+              startAngle={90}
+              endAngle={-270}
+              onMouseEnter={(_, index) => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+            >
+              {chartData.map((_, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                  className="transition-all duration-200 hover:opacity-80 cursor-pointer hover:scale-105"
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Tooltip - Outside Chart */}
+        {activeItem && activePercentage && (
+          <div className="absolute top-0 right-0 bg-white dark:bg-card border border-border rounded-lg px-4 py-3 shadow-xl z-10 min-w-[140px]">
+            <p className="text-sm font-semibold mb-1">{activeItem.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {valueFormatter ? valueFormatter(activeItem.amount) : activeItem.amount.toLocaleString()}
+            </p>
+            <p className="text-xs font-medium text-primary mt-1">{activePercentage}%</p>
+          </div>
+        )}
+
+        {/* Center Label */}
+        {showLabel && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <p className="text-3xl font-bold text-foreground">
+              {valueFormatter ? valueFormatter(total) : total.toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">Total</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
